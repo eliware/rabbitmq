@@ -2,7 +2,7 @@
 
 ## @eliware/rabbitmq [![npm version](https://img.shields.io/npm/v/@eliware/rabbitmq.svg)](https://www.npmjs.com/package/@eliware/rabbitmq)[![license](https://img.shields.io/github/license/eliware/rabbitmq.svg)](LICENSE)[![build status](https://github.com/eliware/rabbitmq/actions/workflows/nodejs.yml/badge.svg)](https://github.com/eliware/rabbitmq/actions)
 
-> A rabbitmq for Node.js (Insert Brief Description)
+> A simple, testable RabbitMQ client for Node.js supporting both ESM and CommonJS.
 
 ---
 
@@ -19,6 +19,12 @@
 
 ## Features
 
+- Publish and consume messages with RabbitMQ using a simple API
+- Supports both ESM and CommonJS
+- Testable: allows injection of amqplib and logger for mocking
+- TypeScript type definitions included
+- Minimal dependencies
+
 ## Installation
 
 ```bash
@@ -30,35 +36,68 @@ npm install @eliware/rabbitmq
 ### ESM Example
 
 ```js
-// Example for ESM (module JS) usage
+import rabbitmq from '@eliware/rabbitmq';
 
+// Publish a message
+await rabbitmq.publish('myqueue', 'direct', { hello: 'world' });
+
+// Consume messages
+await rabbitmq.consume('myqueue', 'direct', (msg) => {
+  console.log('Received:', msg);
+});
 ```
 
 ### CommonJS Example
 
 ```js
-// Example for CommonJS usage
+const rabbitmq = require('@eliware/rabbitmq');
 
+// Publish a message
+rabbitmq.publish('myqueue', 'direct', { hello: 'world' });
+
+// Consume messages
+rabbitmq.consume('myqueue', 'direct', (msg) => {
+  console.log('Received:', msg);
+});
 ```
 
 ## API
 
-### method1 signature
+### publish(queue, type, message, options?, { amqplibLib, logger }?)
 
-description
+Publishes a message to a RabbitMQ exchange.
 
-### method2 signature
+- `queue` (string): The exchange/queue name
+- `type` (string): The exchange type (e.g., 'direct', 'fanout', 'topic')
+- `message` (any): The message payload (will be JSON-stringified)
+- `options` (object, optional): Exchange options
+- `{ amqplibLib, logger }` (object, optional): For dependency injection/testing
 
-description
+### consume(queue, type, onMessage, options?, { amqplibLib, logger }?)
 
-... etc ...
+Consumes messages from a RabbitMQ queue.
+
+- `queue` (string): The queue name
+- `type` (string): The exchange type
+- `onMessage` (function): Callback for each message (receives parsed message)
+- `options` (object, optional): Queue/exchange options
+- `{ amqplibLib, logger }` (object, optional): For dependency injection/testing
+
+### _resetRabbitMQTestState()
+
+Closes any open connections/channels (for test cleanup).
 
 ## TypeScript
 
 Type definitions are included:
 
 ```ts
+import rabbitmq, { publish, consume, _resetRabbitMQTestState } from '@eliware/rabbitmq';
 
+await publish('myqueue', 'direct', { foo: 'bar' });
+await consume('myqueue', 'direct', async (msg) => {
+  // handle message
+});
 ```
 
 ## Support
