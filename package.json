@@ -22,7 +22,8 @@
   },
   "scripts": {
     "test": "npx --node-options=\"--experimental-vm-modules --no-warnings\" jest --detectOpenHandles --silent --coverage",
-    "test:gaps": "npm test -- --coverageReporters=text 2>&1 | awk '!/100%/'"
+    "test:gaps": "npm test -- --coverageReporters=text 2>&1 | awk '!/100%/'",
+    "lint": "npx oxlint ."
   },
   "repository": {
     "type": "git",
