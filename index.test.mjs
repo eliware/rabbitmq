@@ -66,6 +66,9 @@ describe('rabbitmq.mjs', () => {
 });
 
 test('builds URLs and validates inputs', async () => {
+  const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
+  const stdout = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
+  try {
   expect(rabbitmq.getRabbitUrl({ rabbitUrl: DUMMY_URL })).toBe(DUMMY_URL);
   const saved = { ...process.env };
   process.env.RABBITMQ_HOST = 'rabbit host'; process.env.RABBITMQ_USER = 'u@'; process.env.RABBITMQ_PASS = 'p&'; process.env.RABBITMQ_VHOST = 'v/h';
@@ -79,6 +82,7 @@ test('builds URLs and validates inputs', async () => {
   await expect(rabbitmq.publish('q', 'direct', {})).rejects.toBeInstanceOf(rabbitmq.RabbitMQError);
   await expect(rabbitmq.consume('q', 'direct', null)).rejects.toThrow('onMessage');
   expect(new rabbitmq.RabbitMQError('x', { operation: 'test' }).operation).toBe('test');
+  } finally { stderr.mockRestore(); stdout.mockRestore(); }
 });
 
 test('covers connection and consumer edge failures', async () => {
@@ -119,10 +123,14 @@ test('consume supports the default logger path', async () => {
 });
 
 test('consume error path supports the default logger', async () => {
+  const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
+  const stdout = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
+  try {
   await rabbitmq._resetRabbitMQTestState();
   const channel = { assertExchange: jest.fn().mockRejectedValue(new Error('exchange down')) };
   const connection = { createChannel: jest.fn().mockResolvedValue(channel), close: jest.fn().mockResolvedValue() };
   await expect(rabbitmq.consume('error-log', 'direct', jest.fn(), {}, { amqplibLib: { connect: jest.fn().mockResolvedValue(connection) }, rabbitUrl: DUMMY_URL, logger: null })).rejects.toThrow('exchange down');
+  } finally { stderr.mockRestore(); stdout.mockRestore(); }
 });
 
 test('supports lifecycle, health checks, connection events, TLS, and backpressure', async () => {
