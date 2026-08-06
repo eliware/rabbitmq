@@ -1,9 +1,9 @@
 import rabbitmq from '@eliware/rabbitmq';
 
-// Example publish
-await rabbitmq.publish('myqueue', 'direct', { hello: 'world' });
+// Configure RABBITMQ_HOST, RABBITMQ_USER, RABBITMQ_PASS, and RABBITMQ_VHOST
+// in the environment, or pass rabbitUrl in the final options argument.
+await rabbitmq.publish('events', 'topic', { event: 'created', id: 42 });
 
-// Example consume
-await rabbitmq.consume('myqueue', 'direct', (msg) => {
-  console.log('Received:', msg);
+await rabbitmq.consume('events', 'topic', async (message) => {
+  console.log('Received:', message);
 });

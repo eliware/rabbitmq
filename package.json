@@ -2,22 +2,20 @@
   "name": "@eliware/rabbitmq",
   "type": "module",
   "version": "1.1.1",
-  "description": "A simple, testable RabbitMQ client for Node.js supporting both ESM and CommonJS.",
-  "main": "index.cjs",
-  "module": "index.mjs",
+  "description": "A small, testable ESM RabbitMQ publish and consume client for Node.js",
+  "main": "index.mjs",
   "types": "index.d.ts",
   "files": [
     "index.mjs",
-    "index.cjs",
     "index.d.ts",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "example.mjs"
   ],
   "exports": {
     ".": {
-      "import": "./index.mjs",
-      "require": "./index.cjs",
-      "types": "./index.d.ts"
+      "types": "./index.d.ts",
+      "import": "./index.mjs"
     }
   },
   "scripts": {
@@ -30,14 +28,16 @@
     "url": "git+https://github.com/eliware/rabbitmq.git"
   },
   "keywords": [
-    "rabbitmq",
-    "nodejs",
     "amqp",
-    "messaging",
-    "queue",
-    "pubsub",
+    "amqp-client",
     "esmodule",
-    "commonjs",
+    "exchange",
+    "message-broker",
+    "messaging",
+    "nodejs",
+    "pubsub",
+    "queue",
+    "rabbitmq",
     "testable"
   ],
   "author": "Eli Sterling, eliware.org <eli@eliware.org>",
@@ -53,8 +53,7 @@
     "testEnvironment": "node",
     "testMatch": [
       "**/?(*.)+(spec|test).[jt]s?(x)",
-      "**/?(*.)+(spec|test).mjs",
-      "**/?(*.)+(spec|test).cjs"
+      "**/?(*.)+(spec|test).mjs"
     ]
   },
   "dependencies": {
