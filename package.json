@@ -22,7 +22,6 @@
   },
   "scripts": {
     "test": "npx --node-options=\"--experimental-vm-modules --no-warnings\" jest --detectOpenHandles --silent --coverage",
-    "test:gaps": "npm test -- --coverageReporters=text 2>&1 | awk '!/100%/'",
     "test:gaps": "npm test -- --coverageReporters=text 2>&1 | awk '!/100%/'"
   },
   "repository": {
@@ -47,7 +46,7 @@
   },
   "homepage": "https://github.com/eliware/rabbitmq#readme",
   "devDependencies": {
-    "jest": "^30.0.4"
+    "jest": "^30.4.2"
   },
   "jest": {
     "testEnvironment": "node",
@@ -58,7 +57,7 @@
     ]
   },
   "dependencies": {
-    "@eliware/log": "^1.1.1",
-    "amqplib": "^0.10.8"
+    "@eliware/log": "^1.1.4",
+    "amqplib": "^2.0.1"
   }
 }
