@@ -136,4 +136,5 @@ dist
 .pnp.*
 
 # jest
-.jest.result.agentx*
+.jest.result
+.agentx*
