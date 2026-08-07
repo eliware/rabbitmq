@@ -1,5 +1,19 @@
 # Release notes
 
+## 1.1.3 — August 7, 2026
+
+### Changed
+
+- Updated `@eliware/log` to 1.1.10 and refreshed the lockfile.
+- Fixed coverage-gap filtering for the release validation workflow.
+
+### Verification
+
+- 18 tests passing.
+- 100% statements, branches, functions, and lines covered.
+- Lint passes with zero warnings and errors.
+- Import/API smoke test passed.
+
 ## 1.1.2 — August 6, 2026
 
 ### Changed
