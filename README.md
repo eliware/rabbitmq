@@ -17,6 +17,11 @@ A small, testable ESM RabbitMQ client for Node.js.
 - Support TLS options, custom serialization, message properties, backpressure, and failed-message requeue behavior.
 - Includes TypeScript declarations and structured `RabbitMQError` errors.
 
+## Requirements
+
+- Node.js 26 or newer
+- A reachable RabbitMQ server for publish/consume operations
+
 ## Installation
 
 ```bash
@@ -79,6 +84,26 @@ import { consume, publish } from '@eliware/rabbitmq';
 await publish('events', 'direct', { hello: 'world' });
 await consume('events', 'direct', (message) => console.log(message));
 ```
+
+## Errors / Troubleshooting
+
+Connection and operation failures are surfaced as `RabbitMQError` with an operation name. Credentials, message contents, URLs containing credentials, and TLS material are not logged. Operations retry once after transient connection failures by default; disable this with `reconnect: false` when appropriate. Always call `close()` during shutdown.
+
+## Development
+
+```bash
+npm test
+npm run test:gaps
+npm run lint
+npm run typecheck
+npm run pack
+```
+
+Tests inject `amqplib`, logging, and runtime configuration; a live RabbitMQ server is optional.
+
+## Security
+
+Keep RabbitMQ credentials and certificates in environment variables or secret storage. Use TLS options for secure deployments and never log passwords, private keys, credential-bearing URLs, or message payloads.
 
 ## Links
 

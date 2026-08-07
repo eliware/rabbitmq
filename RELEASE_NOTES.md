@@ -1,5 +1,11 @@
 # Release notes
 
+## 1.1.4 — 2026-08-07
+
+- Standardized package layout, validation scripts, TypeScript checking, CI, and package contents.
+- Updated `@eliware/log` to 1.1.11.
+- Expanded operational, troubleshooting, development, and security documentation.
+
 ## 1.1.3 — August 7, 2026
 
 ### Changed
