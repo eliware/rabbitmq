@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import * as rabbitmq from './index.mjs';
+import * as rabbitmq from '../index.mjs';
 
 const DUMMY_URL = 'amqp://user:pass@host/vhost';
 

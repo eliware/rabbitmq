@@ -1,0 +1,12 @@
+{
+    "compilerOptions": {
+        "allowJs": false,
+        "lib": ["ES2022", "DOM"],
+        "module": "NodeNext",
+        "moduleResolution": "NodeNext",
+        "noEmit": true,
+        "strict": true,
+        "skipLibCheck": true
+    },
+    "include": ["index.d.ts"]
+}
