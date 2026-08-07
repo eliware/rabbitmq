@@ -1,63 +1,63 @@
 {
-    "name": "@eliware/rabbitmq",
-    "type": "module",
-    "version": "1.1.2",
-    "description": "A small, testable ESM RabbitMQ publish and consume client for Node.js",
-    "main": "index.mjs",
-    "types": "index.d.ts",
-    "files": [
-        "index.mjs",
-        "index.d.ts",
-        "README.md",
-        "LICENSE",
-        "examples"
-    ],
-    "exports": {
-        ".": {
-            "types": "./index.d.ts",
-            "import": "./index.mjs"
-        }
-    },
-    "scripts": {
-        "test": "npx --node-options=\"--experimental-vm-modules --no-warnings\" jest --detectOpenHandles --silent --coverage",
-        "test:gaps": "npm test -- --coverageReporters=text 2>&1 | awk '!/100%/'",
-        "lint": "npx oxlint ."
-    },
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/eliware/rabbitmq.git"
-    },
-    "keywords": [
-        "amqp",
-        "amqp-client",
-        "esmodule",
-        "exchange",
-        "message-broker",
-        "messaging",
-        "nodejs",
-        "pubsub",
-        "queue",
-        "rabbitmq",
-        "testable"
-    ],
-    "author": "Eli Sterling, eliware.org <eli@eliware.org>",
-    "license": "MIT",
-    "bugs": {
-        "url": "https://github.com/eliware/rabbitmq/issues"
-    },
-    "homepage": "https://github.com/eliware/rabbitmq#readme",
-    "devDependencies": {
-        "jest": "^30.4.2"
-    },
-    "jest": {
-        "testEnvironment": "node",
-        "testMatch": [
-            "**/?(*.)+(spec|test).[jt]s?(x)",
-            "**/?(*.)+(spec|test).mjs"
-        ]
-    },
-    "dependencies": {
-        "@eliware/log": "^1.1.9",
-        "amqplib": "^2.0.1"
+  "name": "@eliware/rabbitmq",
+  "type": "module",
+  "version": "1.1.2",
+  "description": "A small, testable ESM RabbitMQ publish and consume client for Node.js",
+  "main": "index.mjs",
+  "types": "index.d.ts",
+  "files": [
+    "index.mjs",
+    "index.d.ts",
+    "README.md",
+    "LICENSE",
+    "examples"
+  ],
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./index.mjs"
     }
+  },
+  "scripts": {
+    "test": "npx --node-options=\"--experimental-vm-modules --no-warnings\" jest --detectOpenHandles --silent --coverage",
+    "test:gaps": "npm test -- --coverageReporters=text 2>&1 | awk -F'|' 'NF >= 6 && $2 ~ /[0-9]/ && !($2 ~ /^[[:space:]]*100[[:space:]]*$/ && $3 ~ /^[[:space:]]*100[[:space:]]*$/ && $4 ~ /^[[:space:]]*100[[:space:]]*$/ && $5 ~ /^[[:space:]]*100[[:space:]]*$/)'",
+    "lint": "npx oxlint ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/eliware/rabbitmq.git"
+  },
+  "keywords": [
+    "amqp",
+    "amqp-client",
+    "esmodule",
+    "exchange",
+    "message-broker",
+    "messaging",
+    "nodejs",
+    "pubsub",
+    "queue",
+    "rabbitmq",
+    "testable"
+  ],
+  "author": "Eli Sterling, eliware.org <eli@eliware.org>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/eliware/rabbitmq/issues"
+  },
+  "homepage": "https://github.com/eliware/rabbitmq#readme",
+  "devDependencies": {
+    "jest": "^30.4.2"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testMatch": [
+      "**/?(*.)+(spec|test).[jt]s?(x)",
+      "**/?(*.)+(spec|test).mjs"
+    ]
+  },
+  "dependencies": {
+    "@eliware/log": "^1.1.9",
+    "amqplib": "^2.0.1"
+  }
 }
