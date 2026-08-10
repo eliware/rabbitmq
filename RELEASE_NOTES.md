@@ -1,5 +1,18 @@
 # Release notes
 
+## 1.1.5 — 2026-08-10
+
+- Fixed RabbitMQ connection test-state isolation and stale environment handling.
+- Standardized missing-configuration errors as `RabbitMQError` connection failures.
+- Updated `@eliware/log` to 1.1.12.
+
+### Verification
+
+- 18 tests passing with 100% coverage.
+- Lint and TypeScript checks pass.
+- Production dependency audit passes.
+
+
 ## 1.1.4 — 2026-08-07
 
 - Standardized package layout, validation scripts, TypeScript checking, CI, and package contents.
