@@ -59,7 +59,7 @@
         ]
     },
     "dependencies": {
-        "@eliware/log": "^1.1.11",
+        "@eliware/log": "^1.1.12",
         "amqplib": "^2.0.1"
     }
 }
