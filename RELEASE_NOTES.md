@@ -1,5 +1,14 @@
 # Release notes
 
+## 1.1.6 — 2026-08-10
+
+- Bumped package and lockfile metadata to 1.1.6 for the release.
+
+### Verification
+
+- 18 tests passing with 100% coverage.
+- Lint, package audit, and API smoke test pass.
+
 ## 1.1.5 — 2026-08-10
 
 - Fixed RabbitMQ connection test-state isolation and stale environment handling.
