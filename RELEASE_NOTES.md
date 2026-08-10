@@ -1,5 +1,15 @@
 # Release notes
 
+## 1.1.7 — 2026-08-10
+
+- Fixed examples to close RabbitMQ connections after finite operations.
+- Isolated the custom serialization example exchange from the topic example.
+
+### Verification
+
+- 18 tests passing with 100% coverage.
+- Lint, TypeScript checks, and package dry-run pass.
+
 ## 1.1.6 — 2026-08-10
 
 - Bumped package and lockfile metadata to 1.1.6 for the release.
