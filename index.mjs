@@ -7,7 +7,7 @@ export class RabbitMQError extends Error {
 
 export function getRabbitUrl(opts = {}) {
   if (opts.rabbitUrl) return opts.rabbitUrl;
-  if (process.env.RABBITMQ_URL) return process.env.RABBITMQ_URL;
+  if (process.env.RABBITMQ_URL && process.env.RABBITMQ_URL !== 'undefined') return process.env.RABBITMQ_URL;
   const { RABBITMQ_HOST: host, RABBITMQ_USER: user, RABBITMQ_PASS: pass, RABBITMQ_VHOST: vhost = '' } = process.env;
   if (!host) return null;
   return `amqp://${encodeURIComponent(user ?? '')}:${encodeURIComponent(pass ?? '')}@${host}/${encodeURIComponent(vhost)}`;
@@ -40,7 +40,7 @@ export async function connect(opts = {}) {
   const url = getRabbitUrl(opts);
   const library = opts.amqplibLib ?? amqplib;
   const logger = runtimeLogger(opts);
-  if (!url) throw new RabbitMQError('RabbitMQ URL or environment variables are required', { operation: 'connect' });
+  if (!url || url === 'undefined' || url.includes('@undefined/')) throw rabbitError('Failed to connect to RabbitMQ', 'connect', new Error('RabbitMQ URL or environment variables are required'));
   const key = `${url}:${JSON.stringify(opts.tls ?? {})}`;
   if (connection && channel && connectionKey === key) return { connection, channel };
   if (connectPromise) return connectPromise;
@@ -60,6 +60,7 @@ export async function connect(opts = {}) {
 export async function close() {
   const current = connection;
   clearConnection(current);
+  connectPromise = undefined;
   if (current && typeof current.close === 'function') await current.close();
 }
 export function isConnected() { return connection !== undefined; }

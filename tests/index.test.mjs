@@ -7,6 +7,11 @@ describe('rabbitmq.mjs', () => {
     let mockChannel, mockConnection, mockAmqplib, mockLogger;
 
     beforeEach(() => {
+        delete process.env.RABBITMQ_URL;
+        delete process.env.RABBITMQ_HOST;
+        delete process.env.RABBITMQ_USER;
+        delete process.env.RABBITMQ_PASS;
+        delete process.env.RABBITMQ_VHOST;
         mockChannel = {
             assertQueue: jest.fn().mockResolvedValue({}),
             assertExchange: jest.fn().mockResolvedValue({}),
@@ -192,7 +197,7 @@ test('covers URL environment, connection reuse, and optional branches', async ()
   const second = rabbitmq.connect({ amqplibLib: lib });
   expect(await first).toEqual(await second);
   expect(lib.connect).toHaveBeenCalledWith(process.env.RABBITMQ_URL, undefined);
-  process.env.RABBITMQ_URL = saved;
+  if (saved === undefined) delete process.env.RABBITMQ_URL; else process.env.RABBITMQ_URL = saved;
   await rabbitmq._resetRabbitMQTestState();
 });
 
@@ -219,6 +224,7 @@ test('wraps RabbitMQError causes and validates connect options', async () => {
 });
 
 test('covers defensive cleanup and optional failure branches', async () => {
+  for (const key of ['RABBITMQ_URL', 'RABBITMQ_HOST', 'RABBITMQ_USER', 'RABBITMQ_PASS', 'RABBITMQ_VHOST']) delete process.env[key];
   await rabbitmq.close();
   expect(rabbitmq.isConnected()).toBe(false);
   await expect(rabbitmq.connect()).rejects.toThrow('Failed to connect');
@@ -248,6 +254,7 @@ test('covers non-Error connection failures and nack-unavailable handler failures
 });
 
 test('covers close without a close method and verify defaults', async () => {
+  for (const key of ['RABBITMQ_URL', 'RABBITMQ_HOST', 'RABBITMQ_USER', 'RABBITMQ_PASS', 'RABBITMQ_VHOST']) delete process.env[key];
   await rabbitmq._resetRabbitMQTestState();
   const connection = { createChannel: jest.fn().mockResolvedValue({}) };
   await rabbitmq.connect({ amqplibLib: { connect: jest.fn().mockResolvedValue(connection) }, rabbitUrl: DUMMY_URL });
