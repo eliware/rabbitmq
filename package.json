@@ -1,7 +1,7 @@
 {
     "name": "@eliware/rabbitmq",
     "type": "module",
-    "version": "1.1.7",
+    "version": "1.1.8",
     "description": "A small, testable ESM RabbitMQ publish and consume client for Node.js",
     "types": "index.d.ts",
     "files": [

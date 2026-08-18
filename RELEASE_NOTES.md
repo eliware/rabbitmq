@@ -1,5 +1,18 @@
 # Release notes
 
+## 1.1.8 — 2026-08-18
+
+- Added backwards-compatible confirmed publishing through exchanges and queues.
+- Added explicit `publishExchange()` and `publishQueue()` APIs for reliable job and mail delivery.
+- Added `ensureTopology()` for idempotent exchange, queue, and binding declarations.
+- Added confirm-channel lifecycle support and compatibility aliases for RabbitMQ username/password environment variables.
+- Expanded TypeScript declarations, documentation, and failure-path tests.
+
+### Verification
+
+- 22 tests passing; 100% line coverage.
+- Lint, TypeScript checks, production dependency audit, and package dry-run pass.
+
 ## 1.1.7 — 2026-08-10
 
 - Fixed examples to close RabbitMQ connections after finite operations.
