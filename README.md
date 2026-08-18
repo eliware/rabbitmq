@@ -15,6 +15,8 @@ A small, testable ESM RabbitMQ client for Node.js.
 - Reconnect after transient connection/channel failures.
 - Expose explicit connection, health-check, status, and close helpers.
 - Support TLS options, custom serialization, message properties, backpressure, and failed-message requeue behavior.
+- Provide confirmed publishing APIs for durable mail and job delivery.
+- Support explicit exchange, queue, and topology operations without breaking the original API.
 - Includes TypeScript declarations and structured `RabbitMQError` errors.
 
 ## Requirements
@@ -61,6 +63,21 @@ try {
 ```
 
 `connect()` establishes or reuses the shared connection, `isConnected()` reports its state, `verifyConnection()` performs a health check, and `close()` gracefully closes it. Operations retry once after a connection failure by default; set `reconnect: false` to disable that behavior. Acknowledge/reject failures during shutdown are safely ignored and logged at debug level. `_resetRabbitMQTestState()` is retained for test cleanup or deliberate reconnects.
+
+For work that must not be reported successful until RabbitMQ has accepted it, use the confirmed APIs:
+
+```js
+await rabbitmq.publishExchange('mail.direct', 'mail.outbound.submit', job, {}, {
+  messageOptions: { persistent: true, contentType: 'application/json' },
+});
+await rabbitmq.publishQueue('mailbot', notification, {
+  messageOptions: { persistent: true, contentType: 'application/json' },
+});
+```
+
+`publishExchange()` uses a confirm channel, waits for broker confirmation, and closes only its temporary channel. `publishQueue()` asserts a durable queue and confirms direct queue delivery. `ensureTopology()` accepts definitions with `type: 'exchange'`, `type: 'queue'`, or `type: 'binding'` and declares them idempotently. The original `publish()` and `consume()` APIs remain unchanged for existing applications.
+
+Both `RABBITMQ_USER`/`RABBITMQ_PASS` and the equivalent `RABBITMQ_USERNAME`/`RABBITMQ_PASSWORD` environment names are supported.
 
 ## Examples
 

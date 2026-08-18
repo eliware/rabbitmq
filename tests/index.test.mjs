@@ -289,3 +289,55 @@ test('ignores acknowledgement failures during connection shutdown', async () => 
   await failing.cb({ content: Buffer.from('{}') });
   expect(logger.debug).toHaveBeenCalledWith('RabbitMQ message rejection failed during shutdown', expect.anything());
 });
+
+test('confirmed exchange and queue publishing use isolated confirm channels', async () => {
+  await rabbitmq._resetRabbitMQTestState();
+  const confirm = {
+    assertExchange: jest.fn().mockResolvedValue({}),
+    assertQueue: jest.fn().mockResolvedValue({}),
+    publish: jest.fn(() => true),
+    sendToQueue: jest.fn(() => true),
+    waitForConfirms: jest.fn().mockResolvedValue(),
+    close: jest.fn().mockResolvedValue(),
+  };
+  const regular = {};
+  const connection = { createChannel: jest.fn().mockResolvedValue(regular), createConfirmChannel: jest.fn().mockResolvedValue(confirm), close: jest.fn().mockResolvedValue() };
+  const lib = { connect: jest.fn().mockResolvedValue(connection) };
+  const opts = { amqplibLib: lib, rabbitUrl: DUMMY_URL, messageOptions: { persistent: true } };
+  await expect(rabbitmq.createChannel(opts)).resolves.toBe(confirm);
+  await expect(rabbitmq.createChannel({ ...opts, confirm: false })).resolves.toBe(regular);
+  await rabbitmq.publishExchange('mail.direct', 'mail.outbound.submit', { id: 1 }, {}, opts);
+  await rabbitmq.publishQueue('mailbot', { id: 2 }, opts);
+  expect(confirm.publish).toHaveBeenCalledWith('mail.direct', 'mail.outbound.submit', Buffer.from('{"id":1}'), { persistent: true });
+  expect(confirm.sendToQueue).toHaveBeenCalledWith('mailbot', Buffer.from('{"id":2}'), { persistent: true });
+  expect(confirm.waitForConfirms).toHaveBeenCalledTimes(2);
+  expect(confirm.close).toHaveBeenCalledTimes(2);
+});
+
+test('topology helper declares exchanges, queues, bindings and rejects unknown types', async () => {
+  await rabbitmq._resetRabbitMQTestState();
+  const channel = { assertExchange: jest.fn().mockResolvedValue({}), assertQueue: jest.fn().mockResolvedValue({}), bindQueue: jest.fn().mockResolvedValue({}), close: jest.fn().mockResolvedValue(), waitForConfirms: jest.fn() };
+  const connection = { createChannel: jest.fn().mockResolvedValue({}), createConfirmChannel: jest.fn().mockResolvedValue(channel), close: jest.fn().mockResolvedValue() };
+  const opts = { amqplibLib: { connect: jest.fn().mockResolvedValue(connection) }, rabbitUrl: DUMMY_URL };
+  await rabbitmq.ensureTopology([{ type: 'exchange', name: 'mail.direct', exchangeType: 'direct' }, { type: 'queue', name: 'mail.outbound.submit', options: { arguments: { 'x-queue-type': 'quorum' } } }, { type: 'binding', exchange: 'mail.direct', queue: 'mail.outbound.submit', routingKey: 'mail.outbound.submit' }], opts);
+  expect(channel.assertExchange).toHaveBeenCalled(); expect(channel.assertQueue).toHaveBeenCalled(); expect(channel.bindQueue).toHaveBeenCalled();
+  await expect(rabbitmq.ensureTopology([{ type: 'invalid' }], opts)).rejects.toThrow('unknown topology');
+});
+
+test('confirmed operations wrap channel failures', async () => {
+  await rabbitmq._resetRabbitMQTestState();
+  const connection = { createChannel: jest.fn().mockResolvedValue({}), createConfirmChannel: jest.fn().mockRejectedValue(new Error('channel down')), close: jest.fn() };
+  const opts = { amqplibLib: { connect: jest.fn().mockResolvedValue(connection) }, rabbitUrl: DUMMY_URL };
+  await expect(rabbitmq.createChannel(opts)).rejects.toThrow('Failed to create RabbitMQ channel');
+  await expect(rabbitmq.publishExchange('x', 'y', {}, {}, opts)).rejects.toThrow('Failed to create RabbitMQ channel');
+});
+
+test('confirmed operations wrap declaration and publish failures', async () => {
+  await rabbitmq._resetRabbitMQTestState();
+  const exchangeChannel = { assertExchange: jest.fn().mockRejectedValue(new Error('exchange down')), close: jest.fn().mockResolvedValue() };
+  const queueChannel = { assertQueue: jest.fn().mockRejectedValue(new Error('queue down')), close: jest.fn().mockResolvedValue() };
+  const connection = { createChannel: jest.fn().mockResolvedValue({}), createConfirmChannel: jest.fn().mockResolvedValueOnce(exchangeChannel).mockResolvedValueOnce(queueChannel), close: jest.fn().mockResolvedValue() };
+  const opts = { amqplibLib: { connect: jest.fn().mockResolvedValue(connection) }, rabbitUrl: DUMMY_URL };
+  await expect(rabbitmq.publishExchange('x', 'y', {}, {}, opts)).rejects.toThrow("Failed to publish to exchange 'x'");
+  await expect(rabbitmq.publishQueue('q', {}, opts)).rejects.toThrow("Failed to publish to queue 'q'");
+});

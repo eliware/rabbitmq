@@ -8,7 +8,9 @@ export class RabbitMQError extends Error {
 export function getRabbitUrl(opts = {}) {
   if (opts.rabbitUrl) return opts.rabbitUrl;
   if (process.env.RABBITMQ_URL && process.env.RABBITMQ_URL !== 'undefined') return process.env.RABBITMQ_URL;
-  const { RABBITMQ_HOST: host, RABBITMQ_USER: user, RABBITMQ_PASS: pass, RABBITMQ_VHOST: vhost = '' } = process.env;
+  const { RABBITMQ_HOST: host, RABBITMQ_USER: legacyUser, RABBITMQ_PASS: legacyPass, RABBITMQ_USERNAME: username, RABBITMQ_PASSWORD: password, RABBITMQ_VHOST: vhost = '' } = process.env;
+  const user = username ?? legacyUser;
+  const pass = password ?? legacyPass;
   if (!host) return null;
   return `amqp://${encodeURIComponent(user ?? '')}:${encodeURIComponent(pass ?? '')}@${host}/${encodeURIComponent(vhost)}`;
 }
@@ -57,6 +59,17 @@ export async function connect(opts = {}) {
   return connectPromise;
 }
 
+/** Create an isolated channel on the shared connection. Confirm channels are
+ * required when a caller must know that RabbitMQ accepted a publication. */
+export async function createChannel(opts = {}) {
+  const { connection: current } = await connect(opts);
+  try {
+    return opts.confirm === false ? await current.createChannel() : await current.createConfirmChannel();
+  } catch (error) {
+    throw rabbitError('Failed to create RabbitMQ channel', 'createChannel', error);
+  }
+}
+
 export async function close() {
   const current = connection;
   clearConnection(current);
@@ -98,6 +111,55 @@ export async function publish(queue, type, message, options = {}, opts = {}) {
   } catch (error) { runtimeLogger(opts).error(`Failed to publish message to exchange '${queue}'`, { error }); throw error; }
 }
 
+async function publishOnChannel(channel, exchange, routingKey, message, messageOptions = {}, serialize = JSON.stringify) {
+  validateName(exchange, 'exchange');
+  validateName(routingKey, 'routingKey');
+  const payload = Buffer.from(serialize(message));
+  const accepted = channel.publish(exchange, routingKey, payload, messageOptions);
+  if (accepted === false && typeof channel.once === 'function') await new Promise(resolve => channel.once('drain', resolve));
+  if (typeof channel.waitForConfirms === 'function') await channel.waitForConfirms();
+  return true;
+}
+
+/** Publish through an exchange and wait for a broker confirmation. */
+export async function publishExchange(exchange, routingKey, message, exchangeOptions = {}, opts = {}) {
+  validateOptions(exchangeOptions); validateOptions(opts);
+  const channel = await createChannel(opts);
+  try {
+    await channel.assertExchange(exchange, exchangeOptions.type ?? 'direct', exchangeOptions);
+    return await publishOnChannel(channel, exchange, routingKey, message, opts.messageOptions ?? {}, opts.serialize ?? JSON.stringify);
+  } catch (error) { throw rabbitError(`Failed to publish to exchange '${exchange}'`, 'publishExchange', error); }
+  finally { await channel.close?.(); }
+}
+
+/** Publish directly to a queue and wait for a broker confirmation. */
+export async function publishQueue(queue, message, opts = {}) {
+  validateName(queue, 'queue'); validateOptions(opts);
+  const channel = await createChannel(opts);
+  try {
+    await channel.assertQueue(queue, { durable: true, ...opts.queueOptions });
+    const accepted = channel.sendToQueue(queue, Buffer.from((opts.serialize ?? JSON.stringify)(message)), opts.messageOptions ?? {});
+    if (accepted === false && typeof channel.once === 'function') await new Promise(resolve => channel.once('drain', resolve));
+    await channel.waitForConfirms();
+    return true;
+  } catch (error) { throw rabbitError(`Failed to publish to queue '${queue}'`, 'publishQueue', error); }
+  finally { await channel.close?.(); }
+}
+
+export async function ensureTopology(definitions, opts = {}) {
+  if (!Array.isArray(definitions)) throw new TypeError('definitions must be an array');
+  const channel = await createChannel(opts);
+  try {
+    for (const definition of definitions) {
+      if (definition.type === 'exchange') await channel.assertExchange(definition.name, definition.exchangeType ?? 'direct', definition.options ?? { durable: true });
+      else if (definition.type === 'queue') await channel.assertQueue(definition.name, { durable: true, ...definition.options });
+      else if (definition.type === 'binding') await channel.bindQueue(definition.queue, definition.exchange, definition.routingKey ?? definition.key ?? '');
+      else throw new TypeError(`unknown topology definition: ${definition.type}`);
+    }
+    return true;
+  } finally { await channel.close?.(); }
+}
+
 export async function consume(queue, type, onMessage, options = {}, opts = {}) {
   validateName(queue, 'queue'); validateName(type, 'type');
   if (typeof onMessage !== 'function') throw new TypeError('onMessage must be a function');
@@ -128,4 +190,4 @@ export async function consume(queue, type, onMessage, options = {}, opts = {}) {
   } catch (error) { runtimeLogger(opts).error(`Failed to consume messages from queue '${queue}'`, { error }); throw error; }
 }
 
-export default { connect, close, isConnected, verifyConnection, publish, consume, _resetRabbitMQTestState, getRabbitUrl, RabbitMQError };
+export default { connect, createChannel, close, isConnected, verifyConnection, publish, publishExchange, publishQueue, ensureTopology, consume, _resetRabbitMQTestState, getRabbitUrl, RabbitMQError };
