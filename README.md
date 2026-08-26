@@ -90,7 +90,7 @@ Runnable examples are in [`examples/`](examples/):
 - `custom-serialization.mjs`
 - `graceful-shutdown.mjs`
 
-Run one with `node examples/basic-publish.mjs` after configuring the `RABBITMQ_*` environment variables.
+Run one with `node examples/basic-publish.mjs` after configuring the `RABBITMQ_*` environment variables. Examples use environment variables and close connections during finite operations.
 
 ## TypeScript
 
@@ -110,13 +110,13 @@ Connection and operation failures are surfaced as `RabbitMQError` with an operat
 
 ```bash
 npm test
-npm run test:gaps
 npm run lint
 npm run typecheck
+npm audit --omit=dev --audit-level=moderate
 npm run pack
 ```
 
-Tests inject `amqplib`, logging, and runtime configuration; a live RabbitMQ server is optional.
+Tests use `@eliware/test`, inject `amqplib`, logging, and runtime configuration, and enforce 100% statements, branches, functions, and lines coverage. A live RabbitMQ server is optional.
 
 ## Security
 

@@ -1,5 +1,12 @@
 # Release notes
 
+## 2.0.0 — Unreleased
+
+- Modernized the package around the current Eliware testing and release conventions.
+- Added Node.js `>=26` engine metadata, public npm publish metadata, cross-platform CI, production dependency auditing, and coverage enforcement through `@eliware/test`.
+- Updated documentation and package validation workflow.
+- No intentional runtime API changes; the 2.0.0 release remains unreleased.
+
 ## 1.1.8 — 2026-08-18
 
 - Added backwards-compatible confirmed publishing through exchanges and queues.
