@@ -42,7 +42,7 @@ describe('rabbitmq.mjs', () => {
         await rabbitmq.publish('testq', 'direct', { foo: 'bar' }, {}, { amqplibLib: mockAmqplib, logger: mockLogger, rabbitUrl: DUMMY_URL });
         expect(mockChannel.assertExchange).toHaveBeenCalledWith('testq', 'direct', expect.any(Object));
         expect(mockChannel.publish).toHaveBeenCalledWith('testq', 'testq', Buffer.from(JSON.stringify({ foo: 'bar' })));
-        expect(mockLogger.debug).toHaveBeenCalledWith(expect.stringContaining('Published message'), expect.any(Object));
+        expect(mockLogger.debug).toHaveBeenCalledWith(expect.stringContaining('Published message'));
     });
 
     it('consume calls assertExchange, assertQueue, bindQueue, sets up consumer, calls onMessage and ack', async () => {
@@ -340,4 +340,34 @@ test('confirmed operations wrap declaration and publish failures', async () => {
   const opts = { amqplibLib: { connect: jest.fn().mockResolvedValue(connection) }, rabbitUrl: DUMMY_URL };
   await expect(rabbitmq.publishExchange('x', 'y', {}, {}, opts)).rejects.toThrow("Failed to publish to exchange 'x'");
   await expect(rabbitmq.publishQueue('q', {}, opts)).rejects.toThrow("Failed to publish to queue 'q'");
+});
+
+test('does not log message contents and preserves operation errors over cleanup errors', async () => {
+  await rabbitmq._resetRabbitMQTestState();
+  const channel = {
+    assertExchange: jest.fn().mockRejectedValue(new Error('exchange down')),
+    close: jest.fn().mockRejectedValue(new Error('cleanup down')),
+  };
+  const connection = {
+    createChannel: jest.fn().mockResolvedValue({}),
+    createConfirmChannel: jest.fn().mockResolvedValue(channel),
+    close: jest.fn().mockResolvedValue(),
+  };
+  const logger = { debug: jest.fn(), error: jest.fn() };
+  const opts = { amqplibLib: { connect: jest.fn().mockResolvedValue(connection) }, rabbitUrl: DUMMY_URL, logger };
+  await expect(rabbitmq.publishExchange('x', 'y', { secret: 'hidden' }, {}, opts)).rejects.toThrow('exchange down');
+  expect(channel.close).toHaveBeenCalled();
+
+  await rabbitmq._resetRabbitMQTestState();
+  const publishChannel = {
+    assertExchange: jest.fn().mockResolvedValue({}),
+    publish: jest.fn(() => true),
+  };
+  const publishConnection = { createChannel: jest.fn().mockResolvedValue(publishChannel), close: jest.fn().mockResolvedValue() };
+  const publishLogger = { debug: jest.fn(), error: jest.fn() };
+  await rabbitmq.publish('safe', 'direct', { secret: 'hidden' }, {}, {
+    amqplibLib: { connect: jest.fn().mockResolvedValue(publishConnection) }, rabbitUrl: DUMMY_URL, logger: publishLogger,
+  });
+  expect(publishLogger.debug).toHaveBeenCalledWith(expect.not.stringContaining('hidden'));
+  expect(publishLogger.debug.mock.calls[0]).toHaveLength(1);
 });

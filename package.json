@@ -9,7 +9,8 @@
         "index.d.ts",
         "README.md",
         "LICENSE",
-        "examples"
+        "examples",
+        "scripts"
     ],
     "exports": {
         ".": {
@@ -19,7 +20,7 @@
     },
     "scripts": {
         "test": "npx --node-options=\"--experimental-vm-modules --no-warnings\" jest --detectOpenHandles --silent --coverage",
-        "test:gaps": "npm test 2>&1 | grep '|' | grep -vF '|     100 |      100 |     100 |     100 |'",
+        "test:gaps": "npm test && node scripts/check-coverage.mjs",
         "lint": "npx oxlint .",
         "typecheck": "tsc --project tsconfig.json",
         "pack": "npm pack --dry-run"

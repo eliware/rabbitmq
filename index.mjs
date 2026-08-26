@@ -23,7 +23,6 @@ let connection;
 let channel;
 let connectionKey;
 let connectPromise;
-let reconnecting = false;
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 function clearConnection(current) {
@@ -76,6 +75,11 @@ export async function close() {
   connectPromise = undefined;
   if (current && typeof current.close === 'function') await current.close();
 }
+
+async function closeChannel(channel, primaryError) {
+  try { await channel.close?.(); }
+  catch (error) { if (!primaryError) throw error; }
+}
 export function isConnected() { return connection !== undefined; }
 export async function verifyConnection(opts = {}) {
   const { connection: current, channel: currentChannel } = await connect(opts);
@@ -88,11 +92,9 @@ async function withReconnect(fn, opts, operation) {
   try { return await fn((await connect(opts)).channel); }
   catch (error) {
     clearConnection(connection);
-    if (opts.reconnect === false || reconnecting) throw rabbitError(`RabbitMQ ${operation} failed`, operation, error);
-    reconnecting = true;
+    if (opts.reconnect === false) throw rabbitError(`RabbitMQ ${operation} failed`, operation, error);
     try { await wait(opts.reconnectDelay ?? 50); return await fn((await connect(opts)).channel); }
     catch (retryError) { throw rabbitError(`RabbitMQ ${operation} failed`, operation, retryError); }
-    finally { reconnecting = false; }
   }
 }
 
@@ -105,7 +107,7 @@ export async function publish(queue, type, message, options = {}, opts = {}) {
       const payload = Buffer.from(serializer(message));
       const result = opts.messageOptions === undefined ? ch.publish(queue, queue, payload) : ch.publish(queue, queue, payload, opts.messageOptions);
       if (result === false && typeof ch.once === 'function') await new Promise(resolve => ch.once('drain', resolve));
-      runtimeLogger(opts).debug(`Published message to exchange '${queue}' with routing key '${queue}'`, { message: serializer(message) });
+      runtimeLogger(opts).debug(`Published message to exchange '${queue}' with routing key '${queue}'`);
       return true;
     }, opts, 'publish');
   } catch (error) { runtimeLogger(opts).error(`Failed to publish message to exchange '${queue}'`, { error }); throw error; }
@@ -125,25 +127,27 @@ async function publishOnChannel(channel, exchange, routingKey, message, messageO
 export async function publishExchange(exchange, routingKey, message, exchangeOptions = {}, opts = {}) {
   validateOptions(exchangeOptions); validateOptions(opts);
   const channel = await createChannel(opts);
+  let primaryError;
   try {
     await channel.assertExchange(exchange, exchangeOptions.type ?? 'direct', exchangeOptions);
     return await publishOnChannel(channel, exchange, routingKey, message, opts.messageOptions ?? {}, opts.serialize ?? JSON.stringify);
-  } catch (error) { throw rabbitError(`Failed to publish to exchange '${exchange}'`, 'publishExchange', error); }
-  finally { await channel.close?.(); }
+  } catch (error) { primaryError = rabbitError(`Failed to publish to exchange '${exchange}'`, 'publishExchange', error); throw primaryError; }
+  finally { await closeChannel(channel, primaryError); }
 }
 
 /** Publish directly to a queue and wait for a broker confirmation. */
 export async function publishQueue(queue, message, opts = {}) {
   validateName(queue, 'queue'); validateOptions(opts);
   const channel = await createChannel(opts);
+  let primaryError;
   try {
     await channel.assertQueue(queue, { durable: true, ...opts.queueOptions });
     const accepted = channel.sendToQueue(queue, Buffer.from((opts.serialize ?? JSON.stringify)(message)), opts.messageOptions ?? {});
     if (accepted === false && typeof channel.once === 'function') await new Promise(resolve => channel.once('drain', resolve));
     await channel.waitForConfirms();
     return true;
-  } catch (error) { throw rabbitError(`Failed to publish to queue '${queue}'`, 'publishQueue', error); }
-  finally { await channel.close?.(); }
+  } catch (error) { primaryError = rabbitError(`Failed to publish to queue '${queue}'`, 'publishQueue', error); throw primaryError; }
+  finally { await closeChannel(channel, primaryError); }
 }
 
 export async function ensureTopology(definitions, opts = {}) {
@@ -151,6 +155,7 @@ export async function ensureTopology(definitions, opts = {}) {
   const channel = await createChannel(opts);
   try {
     for (const definition of definitions) {
+      if (!definition || typeof definition !== 'object') throw new TypeError('topology definition must be an object');
       if (definition.type === 'exchange') await channel.assertExchange(definition.name, definition.exchangeType ?? 'direct', definition.options ?? { durable: true });
       else if (definition.type === 'queue') await channel.assertQueue(definition.name, { durable: true, ...definition.options });
       else if (definition.type === 'binding') await channel.bindQueue(definition.queue, definition.exchange, definition.routingKey ?? definition.key ?? '');
