@@ -11,6 +11,7 @@
         "index.mjs",
         "index.d.ts",
         "README.md",
+        "RELEASE_NOTES.md",
         "LICENSE",
         "examples"
     ],
