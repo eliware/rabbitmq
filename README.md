@@ -34,6 +34,8 @@ npm install @eliware/rabbitmq
 
 Set `RABBITMQ_URL` directly, or set `RABBITMQ_HOST`, `RABBITMQ_USER`, `RABBITMQ_PASS`, and optionally `RABBITMQ_VHOST`. The generated URL is `amqp://user:pass@host/vhost`; credentials and the virtual host are URL-encoded. An explicit `rabbitUrl` in the final options object takes precedence.
 
+For TLS connections, use an `amqps://` URL and pass TLS options through `tls`. Keep certificate contents in environment variables or secret storage; do not commit certificate files or private keys. The `examples/tls.mjs` example reads `RABBITMQ_TLS_CA` and `RABBITMQ_TLS_REJECT_UNAUTHORIZED`.
+
 ## Usage
 
 ```js
@@ -53,7 +55,7 @@ Runtime options are `{ rabbitUrl, amqplibLib, logger, tls, reconnect, reconnectD
 ```js
 import { RabbitMQError, getRabbitUrl } from '@eliware/rabbitmq';
 
-console.log(getRabbitUrl());
+if (!getRabbitUrl()) throw new Error('RabbitMQ configuration is missing');
 try {
   await rabbitmq.publish('events', 'direct', { ok: true }, {}, { rabbitUrl: process.env.RABBITMQ_URL });
 } catch (error) {
