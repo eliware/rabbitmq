@@ -113,7 +113,7 @@ export async function publish(queue, type, message, options = {}, opts = {}) {
   } catch (error) { runtimeLogger(opts).error(`Failed to publish message to exchange '${queue}'`, { error }); throw error; }
 }
 
-async function publishOnChannel(channel, exchange, routingKey, message, messageOptions = {}, serialize = JSON.stringify) {
+async function publishOnChannel(channel, exchange, routingKey, message, messageOptions, serialize) {
   validateName(exchange, 'exchange');
   validateName(routingKey, 'routingKey');
   const payload = Buffer.from(serialize(message));

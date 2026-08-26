@@ -371,3 +371,64 @@ test('does not log message contents and preserves operation errors over cleanup 
   expect(publishLogger.debug).toHaveBeenCalledWith(expect.not.stringContaining('hidden'));
   expect(publishLogger.debug.mock.calls[0]).toHaveLength(1);
 });
+
+test('covers confirmed backpressure, topology defaults, health checks, and cleanup failures', async () => {
+  await expect(rabbitmq.createChannel()).rejects.toThrow('Failed to connect');
+  await expect(rabbitmq.publishQueue('queue')).rejects.toThrow('Failed to connect');
+  await expect(rabbitmq.ensureTopology([])).rejects.toThrow('Failed to connect');
+  await expect(rabbitmq.publishExchange('x', 'y', {})).rejects.toThrow('Failed to connect');
+  await rabbitmq._resetRabbitMQTestState();
+  const drain = { once: jest.fn((event, callback) => callback()) };
+  const confirmed = {
+    assertExchange: jest.fn().mockResolvedValue({}),
+    assertQueue: jest.fn().mockResolvedValue({}),
+    publish: jest.fn(() => false),
+    sendToQueue: jest.fn(() => false),
+    waitForConfirms: jest.fn().mockResolvedValue(),
+    close: jest.fn().mockResolvedValue(),
+    ...drain,
+  };
+  const connection = { createChannel: jest.fn().mockResolvedValue({}), createConfirmChannel: jest.fn().mockResolvedValue(confirmed), close: jest.fn().mockResolvedValue() };
+  const opts = { amqplibLib: { connect: jest.fn().mockResolvedValue(connection) }, rabbitUrl: DUMMY_URL };
+  await rabbitmq.publishExchange('exchange', 'key', { ok: true }, {}, opts);
+  await rabbitmq.publishQueue('queue', { ok: true }, opts);
+  expect(confirmed.once).toHaveBeenCalledWith('drain', expect.any(Function));
+
+  await rabbitmq._resetRabbitMQTestState();
+  const noConfirm = { assertExchange: jest.fn().mockResolvedValue({}), publish: jest.fn(() => true), close: jest.fn().mockResolvedValue() };
+  const noConfirmConnection = { createChannel: jest.fn().mockResolvedValue({}), createConfirmChannel: jest.fn().mockResolvedValue(noConfirm) };
+  await rabbitmq.publishExchange('no-confirm', 'key', {}, {}, {
+    amqplibLib: { connect: jest.fn().mockResolvedValue(noConfirmConnection) }, rabbitUrl: DUMMY_URL,
+  });
+
+  await rabbitmq._resetRabbitMQTestState();
+  const healthChannel = { checkExchange: jest.fn().mockResolvedValue({}) };
+  const healthConnection = { createChannel: jest.fn().mockResolvedValue(healthChannel) };
+  await expect(rabbitmq.verifyConnection({
+    amqplibLib: { connect: jest.fn().mockResolvedValue(healthConnection) }, rabbitUrl: DUMMY_URL,
+  })).resolves.toBe(true);
+  expect(healthChannel.checkExchange).toHaveBeenCalledWith('amq.direct');
+
+  await rabbitmq._resetRabbitMQTestState();
+  const topologyChannel = { assertExchange: jest.fn().mockResolvedValue({}), bindQueue: jest.fn().mockResolvedValue({}), close: jest.fn().mockResolvedValue() };
+  const topologyConnection = { createChannel: jest.fn().mockResolvedValue({}), createConfirmChannel: jest.fn().mockResolvedValue(topologyChannel) };
+  const topologyOpts = { amqplibLib: { connect: jest.fn().mockResolvedValue(topologyConnection) }, rabbitUrl: DUMMY_URL };
+  await expect(rabbitmq.ensureTopology([null], topologyOpts)).rejects.toThrow('definition must be an object');
+  await expect(rabbitmq.ensureTopology([{ type: 'exchange', name: 'default' }], topologyOpts)).resolves.toBe(true);
+  expect(topologyChannel.assertExchange).toHaveBeenCalledWith('default', 'direct', { durable: true });
+  await expect(rabbitmq.ensureTopology([{ type: 'binding', queue: 'q', exchange: 'e', key: 'fallback' }], topologyOpts)).resolves.toBe(true);
+  await expect(rabbitmq.ensureTopology([{ type: 'binding', queue: 'q', exchange: 'e' }], topologyOpts)).resolves.toBe(true);
+  await expect(rabbitmq.ensureTopology({}, topologyOpts)).rejects.toThrow('definitions must be an array');
+
+  await rabbitmq._resetRabbitMQTestState();
+  const cleanupChannel = {
+    assertExchange: jest.fn().mockResolvedValue({}),
+    publish: jest.fn(() => true),
+    waitForConfirms: jest.fn().mockResolvedValue(),
+    close: jest.fn().mockRejectedValue(new Error('cleanup only')),
+  };
+  const cleanupConnection = { createChannel: jest.fn().mockResolvedValue({}), createConfirmChannel: jest.fn().mockResolvedValue(cleanupChannel) };
+  await expect(rabbitmq.publishExchange('cleanup', 'key', {}, {}, {
+    amqplibLib: { connect: jest.fn().mockResolvedValue(cleanupConnection) }, rabbitUrl: DUMMY_URL,
+  })).rejects.toThrow('cleanup only');
+});
