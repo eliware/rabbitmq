@@ -1,5 +1,7 @@
 # [![eliware.org](https://eliware.org/logos/brand.png)](https://discord.gg/M6aTR9eTwN)
 
+Documentation: [docs](docs/README.md) · [specifications](specs/README.md) · [examples](examples/README.md)
+
 ## @eliware/rabbitmq [![npm version](https://img.shields.io/npm/v/@eliware/rabbitmq.svg)](https://www.npmjs.com/package/@eliware/rabbitmq)[![license](https://img.shields.io/github/license/eliware/rabbitmq.svg)](LICENSE)[![build status](https://github.com/eliware/rabbitmq/actions/workflows/nodejs.yml/badge.svg)](https://github.com/eliware/rabbitmq/actions)
 
 A small, testable ESM RabbitMQ client for Node.js.
