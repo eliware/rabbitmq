@@ -51,7 +51,7 @@
     },
     "homepage": "https://github.com/eliware/rabbitmq#readme",
     "devDependencies": {
-        "@eliware/test": "^2.0.0",
+        "@eliware/test": "^5.0.0",
         "typescript": "^7.0.2"
     },
     "publishConfig": {
